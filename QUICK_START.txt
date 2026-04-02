@@ -1,0 +1,92 @@
+# 🚀 QUICK START: Deploy to Azure in 5 Steps
+
+## Step 1: Build (2 minutes)
+```bash
+cd d:\chatbot-widget\nobrokerstyle
+npm run build
+```
+✅ Verify `build/` folder created
+
+## Step 2: Push to GitHub (1 minute)
+```bash
+git add .
+git commit -m "Deploy to Azure"
+git push origin main
+```
+✅ Code pushed to GitHub
+
+## Step 3: Create Azure Static Web App (2 minutes)
+
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Click **Create a resource**
+3. Search **"Static Web App"** → Create
+4. Fill form:
+   - **Name**: `nobroker-chatbot`
+   - **Region**: Your closest region
+   - **Source**: GitHub (sign in)
+   - **Repo**: Your repo
+   - **Branch**: `main`
+   - **Build Presets**: React
+   - **App location**: `/`
+   - **Output location**: `build`
+5. Click **Create**
+
+After creation → Copy **API Token**
+
+## Step 4: Add GitHub Secret (1 minute)
+
+1. Go to GitHub Repo
+2. **Settings** → **Secrets and variables** → **Actions**
+3. **New repository secret**
+4. **Name**: `AZURE_STATIC_WEB_APPS_API_TOKEN`
+5. **Value**: Paste token from Azure
+6. **Add secret**
+
+## Step 5: Deploy (Automatic!)
+
+GitHub Actions runs automatically:
+- ✅ Builds your app
+- ✅ Deploys to Azure
+- ✅ Live in 2-3 minutes!
+
+## 🎉 You're Done!
+
+Your chatbot is live at:
+```
+https://nobroker-chatbot-abc123.azurewebsites.net
+```
+
+## 📋 Use on Your Website
+
+Add this HTML to your website:
+```html
+<script src="https://nobroker-chatbot-abc123.azurewebsites.net/widget.js"></script>
+<script>ChatbotWidget.init({ position: 'bottom-right' });</script>
+```
+
+Done! Chatbot appears on your site. 🎊
+
+---
+
+## 📚 Need More Help?
+
+- **Full Guide**: [DEPLOY_TO_AZURE.md](./DEPLOY_TO_AZURE.md)
+- **Integration**: [WIDGET_INTEGRATION.md](./WIDGET_INTEGRATION.md)
+- **Checklist**: [AZURE_DEPLOYMENT_CHECKLIST.md](./AZURE_DEPLOYMENT_CHECKLIST.md)
+- **Summary**: [QUICK_DEPLOY_SUMMARY.md](./QUICK_DEPLOY_SUMMARY.md)
+
+## 🔄 Update Your Chatbot
+
+Every time you update code:
+```bash
+git add .
+git commit -m "Your message"
+git push origin main
+# → Auto-deploys to Azure! ✅
+```
+
+No manual deployment needed!
+
+---
+
+**Questions?** Check the docs or Azure support.

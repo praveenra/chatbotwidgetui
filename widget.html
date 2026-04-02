@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nobroker Chatbot Widget</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .chatbot-widget-frame {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 380px;
+            height: 500px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            background: white;
+            z-index: 9999;
+            overflow: hidden;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .chatbot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .chatbot-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            padding: 4px 10px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: #f87171;
+            animation: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-button:hover {
+            opacity: 0.8;
+        }
+
+        .chatbot-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: #f9f9f9;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            gap: 12px;
+            color: #666;
+            text-align: center;
+        }
+
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            opacity: 0.5;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-items: flex-end;
+        }
+
+        .message.bot {
+            align-items: flex-start;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 10px 14px;
+            border-radius: 10px;
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-size: 13px;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 3px;
+        }
+
+        .message.bot .message-content {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 3px;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #999;
+            padding: 0 4px;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            border-bottom-left-radius: 3px;
+            width: fit-content;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #999;
+            animation: bounce 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%, 60%, 100% {
+                opacity: 0.3;
+                transform: translateY(0);
+            }
+            30% {
+                opacity: 1;
+                transform: translateY(-8px);
+            }
+        }
+
+        .chatbot-footer {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 13px;
+            outline: none;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        .message-input:focus {
+            border-color: #667eea;
+        }
+
+        .message-input:disabled {
+            background: #f5f5f5;
+            cursor: not-allowed;
+            color: #999;
+        }
+
+        .send-button {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .chatbot-toggle-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+            z-index: 9998;
+            transition: transform 0.2s;
+        }
+
+        .chatbot-toggle-button:hover {
+            transform: scale(1.1);
+        }
+
+        .scrollbar-style::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .scrollbar-style::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .scrollbar-style::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+
+        .scrollbar-style::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+
+        @media (max-width: 640px) {
+            .chatbot-widget-frame {
+                width: calc(100% - 20px);
+                height: calc(100vh - 100px);
+                bottom: 70px;
+                right: 10px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toggle Button -->
+    <button id="chatbotToggle" class="chatbot-toggle-button" title="Open Chat">
+        💬
+    </button>
+
+    <!-- Chat Widget Frame -->
+    <div id="chatbotFrame" class="chatbot-widget-frame" style="display: none;">
+        <div class="chatbot-header">
+            <h3>Support Chat</h3>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="status-badge">
+                    <div id="statusDot" class="status-dot"></div>
+                    <span id="statusText">Online</span>
+                </div>
+                <button class="close-button" id="closeButton">✕</button>
+            </div>
+        </div>
+
+        <div id="messagesContainer" class="chatbot-body scrollbar-style">
+            <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <p>Hi! 👋 How can we help?</p>
+            </div>
+        </div>
+
+        <div class="chatbot-footer">
+            <input 
+                type="text" 
+                id="messageInput" 
+                class="message-input" 
+                placeholder="Type a message..." 
+                disabled
+            />
+            <button id="sendButton" class="send-button" disabled>Send</button>
+        </div>
+    </div>
+
+    <script>
+        // Socket.io Configuration
+        const BACKEND_URL = 'https://chatbotapi-prod-v1-bhcsdnbbdygjhpe9.southindia-01.azurewebsites.net';
+        
+        let socket = null;
+        let isWidgetOpen = false;
+        let isConnected = false;
+
+        // Initialize Socket.io connection
+        function initializeSocket() {
+            socket = io(BACKEND_URL, {
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                reconnectionAttempts: 5,
+                transports: ['websocket', 'polling'],
+                secure: true,
+                rejectUnauthorized: false
+            });
+
+            socket.on('connect', () => {
+                console.log('Connected to chat server');
+                isConnected = true;
+                updateConnectionStatus();
+                document.getElementById('messageInput').disabled = false;
+                document.getElementById('sendButton').disabled = false;
+                addBotMessage('Connected! How can I assist you?');
+            });
+
+            socket.on('disconnect', () => {
+                console.log('Disconnected from chat server');
+                isConnected = false;
+                updateConnectionStatus();
+                document.getElementById('messageInput').disabled = true;
+                document.getElementById('sendButton').disabled = true;
+            });
+
+            socket.on('bot_message', (data) => {
+                const msgText = typeof data === 'string' ? data : data.message || data;
+                addBotMessage(msgText);
+                hideTypingIndicator();
+            });
+
+            socket.on('error', (error) => {
+                console.error('Socket error:', error);
+                addBotMessage('Sorry, there was a connection error. Please try again.');
+            });
+        }
+
+        function updateConnectionStatus() {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            if (isConnected) {
+                statusDot.classList.remove('offline');
+                statusText.textContent = 'Online';
+            } else {
+                statusDot.classList.add('offline');
+                statusText.textContent = 'Offline';
+            }
+        }
+
+        // DOM Elements
+        const chatbotToggle = document.getElementById('chatbotToggle');
+        const chatbotFrame = document.getElementById('chatbotFrame');
+        const closeButton = document.getElementById('closeButton');
+        const messagesContainer = document.getElementById('messagesContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // Toggle Widget
+        chatbotToggle.addEventListener('click', () => {
+            if (!isWidgetOpen) {
+                chatbotFrame.style.display = 'flex';
+                chatbotToggle.style.display = 'none';
+                isWidgetOpen = true;
+                
+                if (!socket) {
+                    initializeSocket();
+                }
+                
+                messageInput.focus();
+            }
+        });
+
+        closeButton.addEventListener('click', () => {
+            chatbotFrame.style.display = 'none';
+            chatbotToggle.style.display = 'flex';
+            isWidgetOpen = false;
+        });
+
+        // Send Message
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !isConnected) return;
+
+            addUserMessage(message);
+            messageInput.value = '';
+            showTypingIndicator();
+
+            if (socket) {
+                socket.emit('user_message', message);
+                console.log('📤 Message sent:', message);
+            }
+        }
+
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Message Helpers
+        function addUserMessage(text) {
+            clearEmptyState();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user';
+            messageDiv.innerHTML = `
+                <div class="message-content">${escapeHtml(text)}</div>
+                <span class="message-time">${getCurrentTime()}</span>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function addBotMessage(text) {
+            clearEmptyState();
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot';
+            messageDiv.innerHTML = `
+                <div class="message-content">${escapeHtml(text)}</div>
+                <span class="message-time">${getCurrentTime()}</span>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typingIndicator';
+            typingDiv.className = 'message bot';
+            typingDiv.innerHTML = `
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            messagesContainer.appendChild(typingDiv);
+            scrollToBottom();
+        }
+
+        function hideTypingIndicator() {
+            const typingDiv = document.getElementById('typingIndicator');
+            if (typingDiv) {
+                typingDiv.remove();
+            }
+        }
+
+        function clearEmptyState() {
+            const emptyState = messagesContainer.querySelector('.empty-state');
+            if (emptyState) {
+                emptyState.remove();
+            }
+        }
+
+        function scrollToBottom() {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function getCurrentTime() {
+            const now = new Date();
+            return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Auto-initialize socket on page load
+        window.addEventListener('load', () => {
+            // Don't auto-initialize, wait for user to open widget
+            // initializeSocket();
+        });
+    </script>
+</body>
+</html>

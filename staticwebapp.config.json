@@ -1,0 +1,62 @@
+{
+  "routes": [
+    {
+      "route": "/widget.js",
+      "serve": "/widget.js",
+      "allowedRoles": []
+    },
+    {
+      "route": "/chatbot.html",
+      "serve": "/chatbot.html",
+      "allowedRoles": []
+    },
+    {
+      "route": "/*",
+      "serve": "/index.html",
+      "statusCode": 200
+    }
+  ],
+  "mimeTypes": {
+    ".json": "application/json",
+    ".js": "application/javascript",
+    ".css": "text/css",
+    ".html": "text/html",
+    ".svg": "image/svg+xml",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2"
+  },
+  "responseHeaders": [
+    {
+      "glob": "**/*.js",
+      "headers": {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "glob": "**/*.css",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "glob": "index.html",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "glob": "widget.html",
+      "headers": {
+        "Cache-Control": "no-cache"
+      }
+    },
+    {
+      "glob": "**/*",
+      "headers": {
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "ALLOWALL"
+      }
+    }
+  ]
+}

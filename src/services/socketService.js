@@ -1,6 +1,7 @@
 import io from 'socket.io-client';
 
-const BACKEND_URL = 'https://chatbotapi-prod-v1-bhcsdnbbdygjhpe9.southindia-01.azurewebsites.net';
+// const BACKEND_URL = 'https://chatbotapi-prod-v1-bhcsdnbbdygjhpe9.southindia-01.azurewebsites.net';
+const BACKEND_URL = 'http://localhost:4000'; // Local development (backend on port 4000)
 
 let socket = null;
 
@@ -55,6 +56,18 @@ export const sendMessage = (message) => {
     console.log('📤 Message sent:', message);
   } else {
     console.error('❌ Socket not connected');
+  }
+};
+
+export const onMessageReceived = (callback) => {
+  if (socket) {
+    socket.on('bot_message', (data) => {
+      // Handle both new format (object) and old format (string)
+      const messageData = typeof data === 'string' 
+        ? { text: data, agent: null, timestamp: new Date().toISOString() }
+        : data;
+      callback(messageData);
+    });
   }
 };
 

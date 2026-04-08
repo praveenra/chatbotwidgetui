@@ -22,7 +22,8 @@ const ChatbotWidgetAdvanced = () => {
     // Listen for incoming bot messages
     const handleBotMsg = (data) => {
       setIsTyping(false);
-      const messageText = typeof data === 'string' ? data : data;
+      // Handle both new format (object) and old format (string)
+      const messageText = typeof data === 'string' ? data : data.text;
       
       setMessages(prev => [...prev, {
         id: Date.now(),
